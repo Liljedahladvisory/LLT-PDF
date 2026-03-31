@@ -43,6 +43,7 @@ export default function App() {
     "select"
   );
   const [exporting, setExporting] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Cache för pdf.js dokument
   const pdfDocsCache = useRef<Map<number, pdfjsLib.PDFDocumentProxy>>(
@@ -88,7 +89,12 @@ export default function App() {
   useEffect(() => {
     const appWindow = getCurrentWebviewWindow();
     const unlisten = appWindow.onDragDropEvent(async (event) => {
-      if (event.payload.type === "drop") {
+      if (event.payload.type === "enter" || event.payload.type === "over") {
+        setIsDragOver(true);
+      } else if (event.payload.type === "leave") {
+        setIsDragOver(false);
+      } else if (event.payload.type === "drop") {
+        setIsDragOver(false);
         const paths = event.payload.paths.filter((p: string) =>
           p.toLowerCase().endsWith(".pdf")
         );
@@ -211,6 +217,40 @@ export default function App() {
 
   return (
     <>
+      {/* Drop-overlay med pulsande kant */}
+      {isDragOver && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            pointerEvents: "none",
+            border: "3px solid var(--accent)",
+            borderRadius: "8px",
+            background: "rgba(91, 141, 239, 0.08)",
+            animation: "dropPulse 1s ease-in-out infinite",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "var(--surface)",
+              padding: "16px 32px",
+              borderRadius: "var(--radius)",
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "var(--accent)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            Slapp PDF-filer har
+          </div>
+        </div>
+      )}
+
       <Toolbar
         activeTool={activeTool}
         onToolChange={setActiveTool}
