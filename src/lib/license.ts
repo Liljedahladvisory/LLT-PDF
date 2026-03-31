@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 // Placeholder — ersätt med din GAS-webhook URL efter driftsättning
-const WEBHOOK_URL = "__REPLACE_WITH_GAS_WEBHOOK_URL__";
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz-GgPCB5f1BwII7OLg8aM38nbTiiF-tUxdgspHhx84H27LBMdSR2J68rbgiYzBEvRq4Q/exec";
 const REVOCATION_URL =
   "https://raw.githubusercontent.com/Liljedahladvisory/LLT-PDF/main/revoked.json";
 
