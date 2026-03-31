@@ -31,7 +31,7 @@ const strings: Record<string, Record<string, string>> = {
     // License screens
     loading: "Laddar...",
     license_revoked: "Din licens har sparrats. Kontakta Liljedahl Legal Tech.",
-    contact_renewal: "Kontakta support@liljedahladvisory.se for att fornya din licens.",
+    contact_renewal: "Kontakta svante@liljedahladvisory.se for att fornya din licens.",
     enter_new_key: "Ange ny licensnyckel",
     activate: "Aktivera",
     back: "Tillbaka",
@@ -73,7 +73,7 @@ const strings: Record<string, Record<string, string>> = {
     // License screens
     loading: "Loading...",
     license_revoked: "Your license has been revoked. Contact Liljedahl Legal Tech.",
-    contact_renewal: "Contact support@liljedahladvisory.se to renew your license.",
+    contact_renewal: "Contact svante@liljedahladvisory.se to renew your license.",
     enter_new_key: "Enter new license key",
     activate: "Activate",
     back: "Back",

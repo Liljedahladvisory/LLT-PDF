@@ -54,7 +54,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
     const sent = await sendVerificationCode(email.trim(), newCode, name.trim());
 
     if (!sent) {
-      setMsg("Could not reach the server. Contact support@liljedahladvisory.se");
+      setMsg("Could not reach the server. Contact svante@liljedahladvisory.se");
       setMsgColor("var(--danger)");
       setLoading(false);
       return;

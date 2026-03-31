@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 
-// Placeholder — ersätt med din GAS-webhook URL efter driftsättning
 const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz-GgPCB5f1BwII7OLg8aM38nbTiiF-tUxdgspHhx84H27LBMdSR2J68rbgiYzBEvRq4Q/exec";
 const REVOCATION_URL =
   "https://raw.githubusercontent.com/Liljedahladvisory/LLT-PDF/main/revoked.json";
@@ -41,7 +41,7 @@ export async function sendVerificationCode(
 ): Promise<boolean> {
   if (!WEBHOOK_URL || WEBHOOK_URL.startsWith("__")) return false;
   try {
-    const resp = await fetch(WEBHOOK_URL, {
+    const resp = await tauriFetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -53,7 +53,8 @@ export async function sendVerificationCode(
     });
     const data = await resp.json();
     return data.status === "ok";
-  } catch {
+  } catch (e) {
+    console.error("[Verification] Webhook error:", e);
     return false;
   }
 }
@@ -61,7 +62,7 @@ export async function sendVerificationCode(
 export async function notifyAdmin(regData: Record<string, string>): Promise<void> {
   if (!WEBHOOK_URL || WEBHOOK_URL.startsWith("__")) return;
   try {
-    await fetch(WEBHOOK_URL, {
+    await tauriFetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(regData),
@@ -73,7 +74,7 @@ export async function notifyAdmin(regData: Record<string, string>): Promise<void
 
 export async function checkRevocation(email: string): Promise<boolean> {
   try {
-    const resp = await fetch(REVOCATION_URL, {
+    const resp = await tauriFetch(REVOCATION_URL, {
       headers: { "User-Agent": "LLT-PDF/1.0" },
     });
     const data = await resp.json();
@@ -82,7 +83,7 @@ export async function checkRevocation(email: string): Promise<boolean> {
     );
     return revoked.includes(email.toLowerCase().trim());
   } catch {
-    return false; // graceful offline
+    return false;
   }
 }
 
