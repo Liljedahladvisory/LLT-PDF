@@ -26,9 +26,19 @@ export default function PdfViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const [drawing, setDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
+  // Text-input state
+  const [textInput, setTextInput] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    pdfX: number;
+    pdfY: number;
+    value: string;
+  }>({ visible: false, x: 0, y: 0, pdfX: 0, pdfY: 0, value: "" });
   const scale = 1.5;
 
   // Rendera PDF-sidan
@@ -61,7 +71,6 @@ export default function PdfViewer({
       if (mod.type === "mask" && mod.width && mod.height) {
         const c = mod.color ?? { r: 0, g: 0, b: 0 };
         ctx.fillStyle = `rgb(${c.r * 255},${c.g * 255},${c.b * 255})`;
-        // PDF: y=0 är botten. Canvas: y=0 är toppen.
         const canvasY = page.height - mod.y - mod.height;
         ctx.fillRect(
           mod.x * scale,
@@ -78,7 +87,6 @@ export default function PdfViewer({
     }
   }, [modifications, page, pageIndex, scale]);
 
-  // Beräkna position relativt till canvas, i PDF-koordinater (utan skalning)
   const getRelativePos = useCallback(
     (e: React.MouseEvent) => {
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -128,20 +136,37 @@ export default function PdfViewer({
           height: h,
         });
       }
-    } else if (activeTool === "text") {
-      const pdfY = page.height - startPos.y;
-      const text = window.prompt("Ange text:");
-      if (text) {
-        onAddModification({
-          type: "text",
-          pageIndex,
-          x: startPos.x,
-          y: pdfY,
-          text,
-          size: 14,
-        });
-      }
     }
+  };
+
+  const handleTextClick = (e: React.MouseEvent) => {
+    if (activeTool !== "text" || !page) return;
+    const pos = getRelativePos(e);
+    const pdfY = page.height - pos.y;
+    setTextInput({
+      visible: true,
+      x: pos.x * scale,
+      y: pos.y * scale,
+      pdfX: pos.x,
+      pdfY,
+      value: "",
+    });
+    // Fokusera input efter render
+    setTimeout(() => textInputRef.current?.focus(), 50);
+  };
+
+  const commitText = () => {
+    if (textInput.value.trim()) {
+      onAddModification({
+        type: "text",
+        pageIndex,
+        x: textInput.pdfX,
+        y: textInput.pdfY,
+        text: textInput.value,
+        size: 14,
+      });
+    }
+    setTextInput({ visible: false, x: 0, y: 0, pdfX: 0, pdfY: 0, value: "" });
   };
 
   const getCursor = () => {
@@ -196,24 +221,9 @@ export default function PdfViewer({
             pointerEvents: "none",
           }}
         />
-        {/* Interaktionslager — fångar alla mus-events ovanpå canvaserna */}
+        {/* Interaktionslager */}
         <div
-          onClick={(e) => {
-            if (activeTool !== "text" || !page) return;
-            const pos = getRelativePos(e);
-            const pdfY = page.height - pos.y;
-            const text = window.prompt("Ange text:");
-            if (text) {
-              onAddModification({
-                type: "text",
-                pageIndex,
-                x: pos.x,
-                y: pdfY,
-                text,
-                size: 14,
-              });
-            }
-          }}
+          onClick={handleTextClick}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -241,20 +251,64 @@ export default function PdfViewer({
             }}
           />
         )}
-        {/* Visuell markör vid text-verktyg */}
-        {drawing && activeTool === "text" && (
+        {/* Inline text-input */}
+        {textInput.visible && (
           <div
             style={{
               position: "absolute",
-              left: startPos.x * scale - 4,
-              top: startPos.y * scale - 4,
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              background: "#ff8c00",
-              pointerEvents: "none",
+              left: textInput.x,
+              top: textInput.y - 30,
+              zIndex: 10,
+              display: "flex",
+              gap: "4px",
             }}
-          />
+          >
+            <input
+              ref={textInputRef}
+              type="text"
+              value={textInput.value}
+              onChange={(e) =>
+                setTextInput((prev) => ({ ...prev, value: e.target.value }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitText();
+                if (e.key === "Escape")
+                  setTextInput({
+                    visible: false,
+                    x: 0,
+                    y: 0,
+                    pdfX: 0,
+                    pdfY: 0,
+                    value: "",
+                  });
+              }}
+              placeholder="Skriv text..."
+              style={{
+                padding: "4px 8px",
+                fontSize: "14px",
+                border: "2px solid #ff8c00",
+                borderRadius: "4px",
+                background: "#fff",
+                color: "#000",
+                outline: "none",
+                minWidth: "180px",
+              }}
+            />
+            <button
+              onClick={commitText}
+              style={{
+                padding: "4px 10px",
+                background: "#ff8c00",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
+                fontSize: "13px",
+                cursor: "pointer",
+              }}
+            >
+              OK
+            </button>
+          </div>
         )}
       </div>
     </div>
