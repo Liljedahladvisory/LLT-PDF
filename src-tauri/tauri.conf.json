@@ -10,7 +10,6 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "title": "LLT PDF",
     "windows": [
       {
         "title": "LLT PDF",
@@ -35,12 +34,6 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {
-    "dialog": {},
-    "fs": {
-      "scope": {
-        "allow": ["**"]
-      }
-    }
-  }
+  "plugins": {}
+
 }
