@@ -2,9 +2,10 @@ import React, { useCallback, useRef, useState } from "react";
 
 interface DropzoneProps {
   onFilesAdded: (files: File[]) => void;
+  isDragOver?: boolean;
 }
 
-export default function Dropzone({ onFilesAdded }: DropzoneProps) {
+export default function Dropzone({ onFilesAdded, isDragOver = false }: DropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,13 +56,14 @@ export default function Dropzone({ onFilesAdded }: DropzoneProps) {
       onDragOver={handleDrag}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
+      className={isDragOver ? "dropzone-pulse" : ""}
       style={{
-        border: `2px dashed ${isDragging ? "var(--accent)" : "var(--border)"}`,
+        border: `2px dashed ${isDragOver ? "#ff8c00" : isDragging ? "var(--accent)" : "var(--border)"}`,
         borderRadius: "var(--radius)",
         padding: "24px 16px",
         textAlign: "center",
         cursor: "pointer",
-        background: isDragging ? "rgba(91,141,239,0.08)" : "transparent",
+        background: isDragOver ? "rgba(255, 140, 0, 0.12)" : isDragging ? "rgba(91,141,239,0.08)" : "transparent",
         transition: "all 0.2s",
       }}
     >

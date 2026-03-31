@@ -89,21 +89,29 @@ export default function App() {
   useEffect(() => {
     const appWindow = getCurrentWebviewWindow();
     const unlisten = appWindow.onDragDropEvent(async (event) => {
-      if (event.payload.type === "enter" || event.payload.type === "over") {
+      const payload = event.payload as Record<string, unknown>;
+      const eventType = (payload.type as string) ?? "";
+      console.log("[DragDrop]", eventType, JSON.stringify(payload).slice(0, 200));
+
+      if (eventType.includes("enter") || eventType.includes("over") || eventType.includes("dragged")) {
         setIsDragOver(true);
-      } else if (event.payload.type === "leave") {
+      } else if (eventType.includes("leave") || eventType.includes("cancelled")) {
         setIsDragOver(false);
-      } else if (event.payload.type === "drop") {
+      }
+
+      // Hantera drop oavsett exakt typ-namn
+      const paths = (payload.paths as string[]) ?? [];
+      if (paths.length > 0 && (eventType.includes("drop") || eventType === "")) {
         setIsDragOver(false);
-        const paths = event.payload.paths.filter((p: string) =>
+        const pdfPaths = paths.filter((p: string) =>
           p.toLowerCase().endsWith(".pdf")
         );
-        if (paths.length === 0) return;
+        if (pdfPaths.length === 0) return;
 
         const buffers: ArrayBuffer[] = [];
         const names: string[] = [];
 
-        for (const filePath of paths) {
+        for (const filePath of pdfPaths) {
           const bytes = await readFile(filePath);
           buffers.push(bytes.buffer as ArrayBuffer);
           const name = filePath.split("/").pop() || filePath;
@@ -273,7 +281,7 @@ export default function App() {
             overflowY: "auto",
           }}
         >
-          <Dropzone onFilesAdded={handleFilesAdded} />
+          <Dropzone onFilesAdded={handleFilesAdded} isDragOver={isDragOver} />
 
           <DndContext
             sensors={sensors}

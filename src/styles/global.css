@@ -62,3 +62,18 @@ button:disabled {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+@keyframes dropzonePulse {
+  0%, 100% {
+    border-color: #ff8c00;
+    box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+  }
+  50% {
+    border-color: #ffb347;
+    box-shadow: 0 0 18px rgba(255, 140, 0, 0.7);
+  }
+}
+
+.dropzone-pulse {
+  animation: dropzonePulse 0.8s ease-in-out infinite;
+}
