@@ -95,6 +95,23 @@ export default function PdfViewer({
     if (activeTool === "select" || !page) return;
     e.preventDefault();
     const pos = getRelativePos(e);
+
+    if (activeTool === "text") {
+      const pdfY = page.height - pos.y;
+      const text = window.prompt("Ange text:");
+      if (text) {
+        onAddModification({
+          type: "text",
+          pageIndex,
+          x: pos.x,
+          y: pdfY,
+          text,
+          size: 14,
+        });
+      }
+      return;
+    }
+
     setStartPos(pos);
     setCurrentPos(pos);
     setDrawing(true);
@@ -126,19 +143,6 @@ export default function PdfViewer({
           y: pdfY,
           width: w,
           height: h,
-        });
-      }
-    } else if (activeTool === "text") {
-      const pdfY = page.height - startPos.y;
-      const text = window.prompt("Ange text:");
-      if (text) {
-        onAddModification({
-          type: "text",
-          pageIndex,
-          x: startPos.x,
-          y: pdfY,
-          text,
-          size: 14,
         });
       }
     }
