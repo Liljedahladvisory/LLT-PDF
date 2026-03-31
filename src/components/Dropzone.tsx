@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import { T } from "../lib/i18n";
 
 interface DropzoneProps {
   onFilesAdded: (files: File[]) => void;
@@ -77,7 +78,7 @@ export default function Dropzone({ onFilesAdded, isDragOver = false }: DropzoneP
       />
       <div style={{ fontSize: "28px", marginBottom: "8px" }}>+</div>
       <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-        Dra PDF-filer hit eller klicka
+        {T("drop_hint")}
       </div>
     </div>
   );

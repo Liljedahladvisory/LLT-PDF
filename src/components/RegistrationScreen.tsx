@@ -18,6 +18,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
   const [company, setCompany] = useState("");
   const [address, setAddress] = useState("");
   const [orgNr, setOrgNr] = useState("");
+  const [vatNr, setVatNr] = useState("");
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
   const [msgColor, setMsgColor] = useState("var(--text-muted)");
@@ -29,23 +30,23 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
 
   const doRegister = async () => {
     if (!name.trim()) {
-      setMsg("Fyll i ditt namn.");
+      setMsg("Please enter your name.");
       setMsgColor("var(--danger)");
       return;
     }
     if (!address.trim()) {
-      setMsg("Fyll i din adress.");
+      setMsg("Please enter your address.");
       setMsgColor("var(--danger)");
       return;
     }
     if (!email.trim() || !email.includes("@")) {
-      setMsg("Fyll i en giltig e-postadress.");
+      setMsg("Please enter a valid email address.");
       setMsgColor("var(--danger)");
       return;
     }
 
     setLoading(true);
-    setMsg("Skickar verifieringskod...");
+    setMsg("Sending verification code...");
     setMsgColor("var(--text-muted)");
 
     const newCode = generateCode();
@@ -53,7 +54,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
     const sent = await sendVerificationCode(email.trim(), newCode, name.trim());
 
     if (!sent) {
-      setMsg("Kunde inte na servern. Kontakta support@liljedahladvisory.se");
+      setMsg("Could not reach the server. Contact support@liljedahladvisory.se");
       setMsgColor("var(--danger)");
       setLoading(false);
       return;
@@ -67,18 +68,17 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
 
   const doVerify = async () => {
     if (codeInput.trim() !== code) {
-      setMsg("Fel kod. Forsok igen.");
+      setMsg("Incorrect code. Please try again.");
       setMsgColor("var(--danger)");
       setCodeInput("");
       return;
     }
 
     setLoading(true);
-    setMsg("Registrerar...");
+    setMsg("Registering...");
     setMsgColor("var(--text-muted)");
 
     try {
-      // Generate 12-month license
       const key = await generateTrialKey(
         name.trim(),
         email.trim(),
@@ -93,7 +93,6 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
         return;
       }
 
-      // Notify admin in background
       const machineId = await getMachineId();
       const today = new Date().toISOString().split("T")[0];
       const expiresDate = new Date(Date.now() + 365 * 86400000)
@@ -105,17 +104,18 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
         company: company.trim(),
         address: address.trim(),
         org_nr: orgNr.trim(),
+        vat_nr: vatNr.trim(),
         email: email.trim(),
         registered: today,
         license_expires: expiresDate,
         machine_id: machineId,
       });
 
-      setMsg("Registrering lyckades! Valkomnen!");
+      setMsg("Registration successful! Welcome!");
       setMsgColor("var(--success)");
       setTimeout(onRegistered, 1500);
-    } catch (err) {
-      setMsg("Registrering misslyckades. Forsok igen.");
+    } catch {
+      setMsg("Registration failed. Please try again.");
       setMsgColor("var(--danger)");
       setLoading(false);
     }
@@ -157,6 +157,8 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
           padding: "40px",
           width: "460px",
           border: "1px solid var(--border)",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
         <h1
@@ -197,12 +199,12 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 marginBottom: "16px",
               }}
             >
-              Registrera dig for att aktivera din licens:
+              Register to activate your license:
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>
-                <label style={labelStyle}>Namn *</label>
+                <label style={labelStyle}>Name *</label>
                 <input
                   style={inputStyle}
                   value={name}
@@ -210,7 +212,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Foretagsnamn</label>
+                <label style={labelStyle}>Company name</label>
                 <input
                   style={inputStyle}
                   value={company}
@@ -218,23 +220,35 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Adress *</label>
+                <label style={labelStyle}>Address *</label>
                 <input
                   style={inputStyle}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
-              <div>
-                <label style={labelStyle}>Organisationsnummer</label>
-                <input
-                  style={inputStyle}
-                  value={orgNr}
-                  onChange={(e) => setOrgNr(e.target.value)}
-                />
+              <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Org. number (Swedish companies)</label>
+                  <input
+                    style={inputStyle}
+                    value={orgNr}
+                    onChange={(e) => setOrgNr(e.target.value)}
+                    placeholder="XXXXXX-XXXX"
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>VAT number (non-Swedish companies)</label>
+                  <input
+                    style={inputStyle}
+                    value={vatNr}
+                    onChange={(e) => setVatNr(e.target.value)}
+                    placeholder="e.g. DE123456789"
+                  />
+                </div>
               </div>
               <div>
-                <label style={labelStyle}>E-postadress *</label>
+                <label style={labelStyle}>Email address *</label>
                 <input
                   style={inputStyle}
                   type="email"
@@ -267,7 +281,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                   padding: "10px 24px",
                 }}
               >
-                Registrera & starta
+                Register & start
               </button>
               <button
                 onClick={onHasKey}
@@ -278,7 +292,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                   padding: "10px 20px",
                 }}
               >
-                Jag har en nyckel
+                I have a key
               </button>
             </div>
           </>
@@ -287,7 +301,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
         {step === "verify" && (
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: "15px", fontWeight: 600, marginBottom: "8px" }}>
-              Verifiera din e-postadress
+              Verify your email address
             </p>
             <p
               style={{
@@ -296,7 +310,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 marginBottom: "20px",
               }}
             >
-              Vi har skickat en 4-siffrig kod till
+              We have sent a 4-digit code to
               <br />
               <strong>{email}</strong>
             </p>
@@ -334,7 +348,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 marginTop: "20px",
               }}
             >
-              Verifiera
+              Verify
             </button>
           </div>
         )}

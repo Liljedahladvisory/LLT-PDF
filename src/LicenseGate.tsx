@@ -1,15 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { checkLicense, checkRevocation, LicenseStatus } from "./lib/license";
+import { setLanguage, T } from "./lib/i18n";
 import RegistrationScreen from "./components/RegistrationScreen";
 import ActivationScreen from "./components/ActivationScreen";
 import ExpiredScreen from "./components/ExpiredScreen";
+import LanguageDialog from "./components/LanguageDialog";
 import App from "./App";
 
-type Screen = "loading" | "app" | "register" | "activate" | "expired";
+const CONFIG_KEY = "llt-pdf-config";
+
+type Screen = "loading" | "app" | "register" | "activate" | "expired" | "language";
+
+function loadConfig(): { lang?: string } {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveConfig(cfg: Record<string, string>) {
+  const existing = loadConfig();
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...existing, ...cfg }));
+}
 
 export default function LicenseGate() {
   const [screen, setScreen] = useState<Screen>("loading");
   const [expiredMsg, setExpiredMsg] = useState("");
+  const [isFirstRun, setIsFirstRun] = useState(false);
+
+  // Apply saved language on mount
+  useEffect(() => {
+    const cfg = loadConfig();
+    if (cfg.lang) {
+      setLanguage(cfg.lang);
+    }
+  }, []);
 
   const doCheck = async () => {
     setScreen("loading");
@@ -17,24 +44,20 @@ export default function LicenseGate() {
       const status: LicenseStatus = await checkLicense();
 
       if (!status.valid) {
-        // No license or invalid
         if (
           status.message.includes("Ingen licens") ||
           status.message.includes("lasa licensfil")
         ) {
+          setIsFirstRun(true);
           setScreen("register");
           return;
         }
-        // Expired or other issue
         setExpiredMsg(status.message);
 
-        // Check revocation if we have an email
         if (status.email) {
           const revoked = await checkRevocation(status.email);
           if (revoked) {
-            setExpiredMsg(
-              "Din licens har sparrats. Kontakta Liljedahl Legal Tech."
-            );
+            setExpiredMsg(T("license_revoked"));
           }
         }
 
@@ -42,21 +65,24 @@ export default function LicenseGate() {
         return;
       }
 
-      // Valid license — check revocation
       if (status.email) {
         const revoked = await checkRevocation(status.email);
         if (revoked) {
-          setExpiredMsg(
-            "Din licens har sparrats. Kontakta Liljedahl Legal Tech."
-          );
+          setExpiredMsg(T("license_revoked"));
           setScreen("expired");
           return;
         }
       }
 
+      // Check if language has been chosen
+      const cfg = loadConfig();
+      if (!cfg.lang) {
+        setScreen("language");
+        return;
+      }
+
       setScreen("app");
     } catch {
-      // If Tauri commands aren't available (e.g., dev in browser), show app
       setScreen("app");
     }
   };
@@ -64,6 +90,17 @@ export default function LicenseGate() {
   useEffect(() => {
     doCheck();
   }, []);
+
+  const handleRegistered = () => {
+    // After registration, show language dialog
+    setScreen("language");
+  };
+
+  const handleLanguageSelect = (lang: "sv" | "en") => {
+    setLanguage(lang);
+    saveConfig({ lang });
+    setScreen("app");
+  };
 
   if (screen === "loading") {
     return (
@@ -77,7 +114,7 @@ export default function LicenseGate() {
           color: "var(--text-muted)",
         }}
       >
-        Laddar...
+        {T("loading")}
       </div>
     );
   }
@@ -85,7 +122,7 @@ export default function LicenseGate() {
   if (screen === "register") {
     return (
       <RegistrationScreen
-        onRegistered={() => setScreen("app")}
+        onRegistered={handleRegistered}
         onHasKey={() => setScreen("activate")}
       />
     );
@@ -94,7 +131,14 @@ export default function LicenseGate() {
   if (screen === "activate") {
     return (
       <ActivationScreen
-        onActivated={() => setScreen("app")}
+        onActivated={() => {
+          const cfg = loadConfig();
+          if (!cfg.lang) {
+            setScreen("language");
+          } else {
+            setScreen("app");
+          }
+        }}
         onBack={() => setScreen("register")}
       />
     );
@@ -107,6 +151,10 @@ export default function LicenseGate() {
         onEnterKey={() => setScreen("activate")}
       />
     );
+  }
+
+  if (screen === "language") {
+    return <LanguageDialog onSelect={handleLanguageSelect} />;
   }
 
   return <App />;

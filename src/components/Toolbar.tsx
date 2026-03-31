@@ -1,4 +1,5 @@
 import React from "react";
+import { T } from "../lib/i18n";
 
 interface ToolbarProps {
   activeTool: "select" | "mask" | "text";
@@ -35,13 +36,13 @@ export default function Toolbar({
       }}
     >
       <button style={btnStyle("select")} onClick={() => onToolChange("select")}>
-        Markera
+        {T("select")}
       </button>
       <button style={btnStyle("mask")} onClick={() => onToolChange("mask")}>
-        Maskera
+        {T("mask")}
       </button>
       <button style={btnStyle("text")} onClick={() => onToolChange("text")}>
-        Text
+        {T("text")}
       </button>
 
       <div style={{ flex: 1 }} />
@@ -51,14 +52,14 @@ export default function Toolbar({
         disabled={!canUndo}
         style={{ background: "var(--surface)", color: "var(--text)", marginRight: "6px" }}
       >
-        Angra
+        {T("undo")}
       </button>
       <button
         onClick={onExport}
         disabled={!canExport}
         style={{ background: "var(--success)", color: "#fff" }}
       >
-        Exportera PDF
+        {T("export_pdf")}
       </button>
     </div>
   );

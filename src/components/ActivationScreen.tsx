@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { activateLicense } from "../lib/license";
+import { T } from "../lib/i18n";
 
 interface Props {
   onActivated: () => void;
@@ -14,13 +15,13 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
 
   const doActivate = async () => {
     if (!key.trim()) {
-      setMsg("Klistra in din licensnyckel.");
+      setMsg(T("invalid_key"));
       setMsgColor("var(--danger)");
       return;
     }
 
     setLoading(true);
-    setMsg("Aktiverar...");
+    setMsg(T("activating"));
     setMsgColor("var(--text-muted)");
 
     try {
@@ -34,7 +35,7 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
         setMsgColor("var(--danger)");
       }
     } catch {
-      setMsg("Aktivering misslyckades.");
+      setMsg(T("activation_failed"));
       setMsgColor("var(--danger)");
     } finally {
       setLoading(false);
@@ -61,48 +62,23 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
         }}
       >
         <h1
-          style={{
-            fontSize: "22px",
-            fontWeight: 700,
-            textAlign: "center",
-            marginBottom: "4px",
-          }}
+          style={{ fontSize: "22px", fontWeight: 700, textAlign: "center", marginBottom: "4px" }}
         >
           LLT PDF
         </h1>
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: "12px",
-            color: "var(--accent)",
-            fontStyle: "italic",
-            marginBottom: "20px",
-          }}
-        >
+        <p style={{ textAlign: "center", fontSize: "12px", color: "var(--accent)", fontStyle: "italic", marginBottom: "20px" }}>
           Powered by Liljedahl Legal Tech
         </p>
-        <div
-          style={{
-            height: "1px",
-            background: "var(--border)",
-            marginBottom: "20px",
-          }}
-        />
+        <div style={{ height: "1px", background: "var(--border)", marginBottom: "20px" }} />
 
-        <p
-          style={{
-            fontSize: "13px",
-            color: "var(--text-muted)",
-            marginBottom: "12px",
-          }}
-        >
-          Ange din licensnyckel for att aktivera appen:
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          {T("paste_key")}
         </p>
 
         <textarea
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder="LLT.XXXX.XXXX.XXXX..."
+          placeholder={T("key_placeholder")}
           style={{
             width: "100%",
             height: "100px",
@@ -119,40 +95,21 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
           }}
         />
 
-        {msg && (
-          <p style={{ fontSize: "13px", color: msgColor, marginTop: "10px" }}>
-            {msg}
-          </p>
-        )}
+        {msg && <p style={{ fontSize: "13px", color: msgColor, marginTop: "10px" }}>{msg}</p>}
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "20px",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
           <button
             onClick={doActivate}
             disabled={loading}
-            style={{
-              background: "var(--accent)",
-              color: "#fff",
-              padding: "10px 24px",
-            }}
+            style={{ background: "var(--accent)", color: "#fff", padding: "10px 24px" }}
           >
-            Aktivera
+            {T("activate")}
           </button>
           <button
             onClick={onBack}
-            style={{
-              background: "transparent",
-              color: "var(--text-muted)",
-              border: "1px solid var(--border)",
-              padding: "10px 20px",
-            }}
+            style={{ background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)", padding: "10px 20px" }}
           >
-            Tillbaka
+            {T("back")}
           </button>
         </div>
       </div>

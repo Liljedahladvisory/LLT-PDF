@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { PageInfo, PdfModification } from "../lib/pdfEngine";
+import { T } from "../lib/i18n";
 
 interface PdfViewerProps {
   page: PageInfo | null;
@@ -186,7 +187,7 @@ export default function PdfViewer({
           color: "var(--text-muted)",
         }}
       >
-        Valj en sida i panelen till vanster
+        {T("select_page")}
       </div>
     );
   }
@@ -282,7 +283,7 @@ export default function PdfViewer({
                     value: "",
                   });
               }}
-              placeholder="Skriv text..."
+              placeholder={T("enter_text")}
               style={{
                 padding: "4px 8px",
                 fontSize: "14px",

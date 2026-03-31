@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { T } from "./lib/i18n";
 import {
   DndContext,
   closestCenter,
@@ -208,16 +209,16 @@ export default function App() {
       // Öppna macOS "Spara som"-dialog
       const filePath = await save({
         defaultPath: "LLT-PDF-export.pdf",
-        filters: [{ name: "PDF-dokument", extensions: ["pdf"] }],
+        filters: [{ name: T("pdf_document"), extensions: ["pdf"] }],
       });
 
       if (filePath) {
         await writeFile(filePath, pdfBytes);
-        alert("PDF sparad!");
+        alert(T("pdf_saved"));
       }
     } catch (err) {
       console.error("Export misslyckades:", err);
-      alert("Kunde inte exportera PDF. Se konsolen för detaljer.");
+      alert(T("export_failed"));
     } finally {
       setExporting(false);
     }
@@ -254,7 +255,7 @@ export default function App() {
               boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
             }}
           >
-            Slapp PDF-filer har
+            {T("drop_files_here")}
           </div>
         </div>
       )}
