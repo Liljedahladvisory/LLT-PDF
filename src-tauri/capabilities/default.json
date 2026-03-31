@@ -17,10 +17,13 @@
     "core:webview:allow-set-webview-position",
     "shell:default",
     "shell:allow-execute",
-    "http:default",
-    "http:allow-fetch",
-    "http:allow-fetch-cancel",
-    "http:allow-fetch-read-body",
-    "http:allow-fetch-send"
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://script.google.com/**" },
+        { "url": "https://script.googleusercontent.com/**" },
+        { "url": "https://raw.githubusercontent.com/**" }
+      ]
+    }
   ]
 }
