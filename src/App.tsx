@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -13,6 +13,9 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import * as pdfjsLib from "pdfjs-dist";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeFile, readFile } from "@tauri-apps/plugin-fs";
 import Dropzone from "./components/Dropzone";
 import PageThumbnail from "./components/PageThumbnail";
 import PdfViewer from "./components/PdfViewer";
@@ -50,18 +53,9 @@ export default function App() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Lägg till PDF-filer
-  const handleFilesAdded = useCallback(
-    async (files: File[]) => {
-      const newBuffers: ArrayBuffer[] = [];
-      const newNames: string[] = [];
-
-      for (const file of files) {
-        const buffer = await file.arrayBuffer();
-        newBuffers.push(buffer);
-        newNames.push(file.name);
-      }
-
+  // Intern funktion för att lägga till buffers + namn
+  const addPdfBuffers = useCallback(
+    async (newBuffers: ArrayBuffer[], newNames: string[]) => {
       const startIndex = sourceFiles.length;
       const allNewPages: PageInfo[] = [];
 
@@ -73,7 +67,6 @@ export default function App() {
         );
         allNewPages.push(...infos);
 
-        // Cache pdf.js-dokument for rendering
         const doc = await pdfjsLib.getDocument({
           data: newBuffers[i].slice(0),
         }).promise;
@@ -89,6 +82,52 @@ export default function App() {
       }
     },
     [sourceFiles.length, selectedIndex]
+  );
+
+  // Lyssna på Tauris fil-drop-event (OS-nivå drag & drop)
+  useEffect(() => {
+    const appWindow = getCurrentWebviewWindow();
+    const unlisten = appWindow.onDragDropEvent(async (event) => {
+      if (event.payload.type === "drop") {
+        const paths = event.payload.paths.filter((p: string) =>
+          p.toLowerCase().endsWith(".pdf")
+        );
+        if (paths.length === 0) return;
+
+        const buffers: ArrayBuffer[] = [];
+        const names: string[] = [];
+
+        for (const filePath of paths) {
+          const bytes = await readFile(filePath);
+          buffers.push(bytes.buffer as ArrayBuffer);
+          const name = filePath.split("/").pop() || filePath;
+          names.push(name);
+        }
+
+        addPdfBuffers(buffers, names);
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [addPdfBuffers]);
+
+  // Lägg till PDF-filer (via fil-väljaren/klick)
+  const handleFilesAdded = useCallback(
+    async (files: File[]) => {
+      const newBuffers: ArrayBuffer[] = [];
+      const newNames: string[] = [];
+
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        newBuffers.push(buffer);
+        newNames.push(file.name);
+      }
+
+      addPdfBuffers(newBuffers, newNames);
+    },
+    [addPdfBuffers]
   );
 
   // Drag & drop ordningsändring
@@ -152,18 +191,19 @@ export default function App() {
     try {
       const pdfBytes = await compileNewPdf(sourceFiles, pages, modifications);
 
-      // I webbläsarläge: ladda ner via blob
-      // I Tauri-läge: använd dialog + fs (detekteras automatiskt)
-      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "LLT-PDF-export.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
+      // Öppna macOS "Spara som"-dialog
+      const filePath = await save({
+        defaultPath: "LLT-PDF-export.pdf",
+        filters: [{ name: "PDF-dokument", extensions: ["pdf"] }],
+      });
+
+      if (filePath) {
+        await writeFile(filePath, pdfBytes);
+        alert("PDF sparad!");
+      }
     } catch (err) {
       console.error("Export misslyckades:", err);
-      alert("Kunde inte exportera PDF. Se konsolen for detaljer.");
+      alert("Kunde inte exportera PDF. Se konsolen för detaljer.");
     } finally {
       setExporting(false);
     }

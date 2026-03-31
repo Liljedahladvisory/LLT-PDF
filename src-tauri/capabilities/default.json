@@ -4,11 +4,16 @@
   "windows": ["*"],
   "permissions": [
     "core:default",
+    "core:window:allow-set-title",
     "dialog:default",
     "dialog:allow-save",
     "dialog:allow-open",
     "fs:default",
     "fs:allow-read",
-    "fs:allow-write"
+    "fs:allow-read-file",
+    "fs:allow-write",
+    "fs:allow-write-file",
+    "core:webview:allow-webview-position",
+    "core:webview:allow-set-webview-position"
   ]
 }
