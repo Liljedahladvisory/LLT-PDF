@@ -61,8 +61,8 @@ export default function PdfViewer({
       if (mod.type === "mask" && mod.width && mod.height) {
         const c = mod.color ?? { r: 0, g: 0, b: 0 };
         ctx.fillStyle = `rgb(${c.r * 255},${c.g * 255},${c.b * 255})`;
-        // PDF y-koordinat konverteras (PDF:0=botten, canvas:0=toppen)
-        const canvasY = page.height * scale - mod.y - mod.height;
+        // PDF: y=0 är botten. Canvas: y=0 är toppen.
+        const canvasY = page.height - mod.y - mod.height;
         ctx.fillRect(
           mod.x * scale,
           canvasY * scale,
@@ -72,12 +72,13 @@ export default function PdfViewer({
       } else if (mod.type === "text" && mod.text) {
         ctx.fillStyle = "#000";
         ctx.font = `${(mod.size || 12) * scale}px Helvetica, sans-serif`;
-        const canvasY = page.height * scale - mod.y;
+        const canvasY = page.height - mod.y;
         ctx.fillText(mod.text, mod.x * scale, canvasY * scale);
       }
     }
   }, [modifications, page, pageIndex, scale]);
 
+  // Beräkna position relativt till canvas, i PDF-koordinater (utan skalning)
   const getRelativePos = useCallback(
     (e: React.MouseEvent) => {
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -92,6 +93,7 @@ export default function PdfViewer({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (activeTool === "select" || !page) return;
+    e.preventDefault();
     const pos = getRelativePos(e);
     setStartPos(pos);
     setCurrentPos(pos);
@@ -100,11 +102,13 @@ export default function PdfViewer({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!drawing) return;
+    e.preventDefault();
     setCurrentPos(getRelativePos(e));
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     if (!drawing || !page) return;
+    e.preventDefault();
     setDrawing(false);
 
     if (activeTool === "mask") {
@@ -114,7 +118,6 @@ export default function PdfViewer({
       const h = Math.abs(currentPos.y - startPos.y);
 
       if (w > 2 && h > 2) {
-        // Konvertera canvas-Y till PDF-Y
         const pdfY = page.height - canvasY - h;
         onAddModification({
           type: "mask",
@@ -139,6 +142,12 @@ export default function PdfViewer({
         });
       }
     }
+  };
+
+  const getCursor = () => {
+    if (activeTool === "mask") return "crosshair";
+    if (activeTool === "text") return "text";
+    return "default";
   };
 
   if (!page) {
@@ -170,12 +179,14 @@ export default function PdfViewer({
       }}
     >
       <div
-        style={{ position: "relative", display: "inline-block" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
+        style={{
+          position: "relative",
+          display: "inline-block",
+          cursor: getCursor(),
+        }}
       >
         <canvas ref={canvasRef} style={{ display: "block", borderRadius: "4px" }} />
+        {/* Overlay för modifieringar */}
         <canvas
           ref={overlayRef}
           style={{
@@ -185,6 +196,21 @@ export default function PdfViewer({
             pointerEvents: "none",
           }}
         />
+        {/* Interaktionslager — fångar alla mus-events ovanpå canvaserna */}
+        <div
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            cursor: getCursor(),
+          }}
+        />
+        {/* Visuell förhandsvisning vid maskering */}
         {drawing && activeTool === "mask" && (
           <div
             style={{
@@ -193,8 +219,23 @@ export default function PdfViewer({
               top: Math.min(startPos.y, currentPos.y) * scale,
               width: Math.abs(currentPos.x - startPos.x) * scale,
               height: Math.abs(currentPos.y - startPos.y) * scale,
-              background: "rgba(0,0,0,0.4)",
-              border: "1px dashed var(--accent)",
+              background: "rgba(0,0,0,0.5)",
+              border: "2px dashed #ff8c00",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+        {/* Visuell markör vid text-verktyg */}
+        {drawing && activeTool === "text" && (
+          <div
+            style={{
+              position: "absolute",
+              left: startPos.x * scale - 4,
+              top: startPos.y * scale - 4,
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#ff8c00",
               pointerEvents: "none",
             }}
           />
