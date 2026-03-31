@@ -92,30 +92,12 @@ export default function PdfViewer({
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (activeTool === "select" || activeTool === "text" || !page) return;
+    if (activeTool === "select" || !page) return;
     e.preventDefault();
     const pos = getRelativePos(e);
     setStartPos(pos);
     setCurrentPos(pos);
     setDrawing(true);
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (activeTool !== "text" || !page) return;
-    e.preventDefault();
-    const pos = getRelativePos(e);
-    const pdfY = page.height - pos.y;
-    const text = window.prompt("Ange text:");
-    if (text) {
-      onAddModification({
-        type: "text",
-        pageIndex,
-        x: pos.x,
-        y: pdfY,
-        text,
-        size: 14,
-      });
-    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -216,7 +198,6 @@ export default function PdfViewer({
         />
         {/* Interaktionslager — fångar alla mus-events ovanpå canvaserna */}
         <div
-          onClick={handleClick}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
