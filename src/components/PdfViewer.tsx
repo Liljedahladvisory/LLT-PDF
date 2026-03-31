@@ -92,7 +92,7 @@ export default function PdfViewer({
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (activeTool === "select" || !page) return;
+    if (activeTool === "select" || activeTool === "text" || !page) return;
     e.preventDefault();
     const pos = getRelativePos(e);
     setStartPos(pos);
