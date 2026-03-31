@@ -14,6 +14,8 @@
     "fs:allow-write",
     "fs:allow-write-file",
     "core:webview:allow-webview-position",
-    "core:webview:allow-set-webview-position"
+    "core:webview:allow-set-webview-position",
+    "shell:default",
+    "shell:allow-execute"
   ]
 }
