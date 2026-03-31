@@ -198,6 +198,22 @@ export default function PdfViewer({
         />
         {/* Interaktionslager — fångar alla mus-events ovanpå canvaserna */}
         <div
+          onClick={(e) => {
+            if (activeTool !== "text" || !page) return;
+            const pos = getRelativePos(e);
+            const pdfY = page.height - pos.y;
+            const text = window.prompt("Ange text:");
+            if (text) {
+              onAddModification({
+                type: "text",
+                pageIndex,
+                x: pos.x,
+                y: pdfY,
+                text,
+                size: 14,
+              });
+            }
+          }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
