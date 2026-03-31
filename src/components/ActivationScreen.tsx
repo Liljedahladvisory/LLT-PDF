@@ -66,7 +66,7 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
         >
           LLT PDF
         </h1>
-        <p style={{ textAlign: "center", fontSize: "12px", color: "var(--accent)", fontStyle: "italic", marginBottom: "20px" }}>
+        <p style={{ textAlign: "center", fontSize: "12px", color: "#ff8c00", fontStyle: "italic", marginBottom: "20px" }}>
           Powered by Liljedahl Legal Tech
         </p>
         <div style={{ height: "1px", background: "var(--border)", marginBottom: "20px" }} />
@@ -101,7 +101,7 @@ export default function ActivationScreen({ onActivated, onBack }: Props) {
           <button
             onClick={doActivate}
             disabled={loading}
-            style={{ background: "var(--accent)", color: "#fff", padding: "10px 24px" }}
+            style={{ background: "#ff8c00", color: "#fff", padding: "10px 24px" }}
           >
             {T("activate")}
           </button>

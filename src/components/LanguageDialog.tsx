@@ -46,7 +46,7 @@ export default function LanguageDialog({ onSelect }: Props) {
         <p
           style={{
             fontSize: "12px",
-            color: "var(--accent)",
+            color: "#ff8c00",
             fontStyle: "italic",
             marginBottom: "24px",
           }}

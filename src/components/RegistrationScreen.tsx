@@ -175,7 +175,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
           style={{
             textAlign: "center",
             fontSize: "12px",
-            color: "var(--accent)",
+            color: "#ff8c00",
             fontStyle: "italic",
             marginBottom: "20px",
           }}
@@ -276,7 +276,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
                 onClick={doRegister}
                 disabled={loading}
                 style={{
-                  background: "var(--accent)",
+                  background: "#ff8c00",
                   color: "#fff",
                   padding: "10px 24px",
                 }}
@@ -342,7 +342,7 @@ export default function RegistrationScreen({ onRegistered, onHasKey }: Props) {
               onClick={doVerify}
               disabled={loading || codeInput.length !== 4}
               style={{
-                background: "var(--accent)",
+                background: "#ff8c00",
                 color: "#fff",
                 padding: "10px 24px",
                 marginTop: "20px",

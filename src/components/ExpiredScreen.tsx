@@ -28,7 +28,7 @@ export default function ExpiredScreen({ message, onEnterKey }: Props) {
         }}
       >
         <h1 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "4px" }}>LLT PDF</h1>
-        <p style={{ fontSize: "12px", color: "var(--accent)", fontStyle: "italic", marginBottom: "24px" }}>
+        <p style={{ fontSize: "12px", color: "#ff8c00", fontStyle: "italic", marginBottom: "24px" }}>
           Powered by Liljedahl Legal Tech
         </p>
         <div style={{ height: "1px", background: "var(--border)", marginBottom: "24px" }} />
@@ -43,7 +43,7 @@ export default function ExpiredScreen({ message, onEnterKey }: Props) {
 
         <button
           onClick={onEnterKey}
-          style={{ background: "var(--accent)", color: "#fff", padding: "10px 24px" }}
+          style={{ background: "#ff8c00", color: "#fff", padding: "10px 24px" }}
         >
           {T("enter_new_key")}
         </button>

@@ -45,7 +45,11 @@ export default function Toolbar({
         {T("text")}
       </button>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: 1, textAlign: "center" }}>
+        <span style={{ fontSize: "11px", color: "var(--text-muted)", fontStyle: "italic" }}>
+          Powered by Liljedahl Legal Tech
+        </span>
+      </div>
 
       <button
         onClick={onUndo}
