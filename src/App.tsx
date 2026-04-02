@@ -14,6 +14,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import * as pdfjsLib from "pdfjs-dist";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile, readFile } from "@tauri-apps/plugin-fs";
@@ -21,18 +22,36 @@ import Dropzone from "./components/Dropzone";
 import PageThumbnail from "./components/PageThumbnail";
 import PdfViewer from "./components/PdfViewer";
 import Toolbar from "./components/Toolbar";
+import UpdateBanner from "./components/UpdateBanner";
 import {
   extractPageInfos,
   compileNewPdf,
   PageInfo,
   PdfModification,
 } from "./lib/pdfEngine";
+import {
+  checkForUpdates,
+  shouldCheckVersion,
+  UpdateInfo,
+} from "./lib/versionCheck";
 
 // Konfigurera pdf.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
   import.meta.url
 ).toString();
+
+const OFFICE_EXTENSIONS = [".docx", ".doc", ".xlsx", ".xls"];
+const PDF_EXTENSION = ".pdf";
+
+function isOfficeFile(path: string): boolean {
+  const lower = path.toLowerCase();
+  return OFFICE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function isPdfFile(path: string): boolean {
+  return path.toLowerCase().endsWith(PDF_EXTENSION);
+}
 
 export default function App() {
   const [sourceFiles, setSourceFiles] = useState<ArrayBuffer[]>([]);
@@ -45,17 +64,32 @@ export default function App() {
   );
   const [exporting, setExporting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [convertingFiles, setConvertingFiles] = useState<string[]>([]);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Cache för pdf.js dokument
   const pdfDocsCache = useRef<Map<number, pdfjsLib.PDFDocumentProxy>>(
     new Map()
   );
 
+  // Versionskontroll mot GitHub Releases (var 24:e timme)
+  useEffect(() => {
+    if (shouldCheckVersion()) {
+      checkForUpdates().then((result) => {
+        if (result.updateAvailable && result.updateInfo) {
+          setUpdateInfo(result.updateInfo);
+          setShowUpdateBanner(true);
+        }
+      });
+    }
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Intern funktion för att lägga till buffers + namn
+  // Lägg till PDF-buffers i appen
   const addPdfBuffers = useCallback(
     async (newBuffers: ArrayBuffer[], newNames: string[]) => {
       const startIndex = sourceFiles.length;
@@ -86,64 +120,90 @@ export default function App() {
     [sourceFiles.length, selectedIndex]
   );
 
-  // Lyssna på Tauris fil-drop-event (OS-nivå drag & drop)
+  // Konvertera ett Office-dokument till PDF och lägg till i appen
+  const convertAndAdd = useCallback(
+    async (filePath: string) => {
+      const fileName = filePath.split(/[/\\]/).pop() || filePath;
+      setConvertingFiles((prev) => [...prev, fileName]);
+      try {
+        const pdfPath = await invoke<string>("convert_to_pdf", { filePath });
+        const bytes = await readFile(pdfPath);
+        const pdfName = fileName.replace(/\.(docx?|xlsx?)$/i, ".pdf");
+        await addPdfBuffers([bytes.buffer as ArrayBuffer], [pdfName]);
+      } catch (err) {
+        alert(`${T("convert_error")}: ${fileName}\n\n${err}`);
+      } finally {
+        setConvertingFiles((prev) => prev.filter((n) => n !== fileName));
+      }
+    },
+    [addPdfBuffers]
+  );
+
+  // Hantera filer från sökvägar (drag-drop och filväljare)
+  const addFilesFromPaths = useCallback(
+    async (paths: string[]) => {
+      const pdfPaths = paths.filter(isPdfFile);
+      const officePaths = paths.filter(isOfficeFile);
+
+      // PDF-filer: läs direkt
+      if (pdfPaths.length > 0) {
+        const buffers: ArrayBuffer[] = [];
+        const names: string[] = [];
+        for (const p of pdfPaths) {
+          const bytes = await readFile(p);
+          buffers.push(bytes.buffer as ArrayBuffer);
+          names.push(p.split(/[/\\]/).pop() || p);
+        }
+        await addPdfBuffers(buffers, names);
+      }
+
+      // Office-filer: konvertera en i taget
+      for (const p of officePaths) {
+        await convertAndAdd(p);
+      }
+    },
+    [addPdfBuffers, convertAndAdd]
+  );
+
+  // Lyssna på Tauris OS-nivå drag & drop
   useEffect(() => {
     const appWindow = getCurrentWebviewWindow();
     const unlisten = appWindow.onDragDropEvent(async (event) => {
       const payload = event.payload as Record<string, unknown>;
       const eventType = (payload.type as string) ?? "";
-      console.log("[DragDrop]", eventType, JSON.stringify(payload).slice(0, 200));
 
-      if (eventType.includes("enter") || eventType.includes("over") || eventType.includes("dragged")) {
+      if (
+        eventType.includes("enter") ||
+        eventType.includes("over") ||
+        eventType.includes("dragged")
+      ) {
         setIsDragOver(true);
-      } else if (eventType.includes("leave") || eventType.includes("cancelled")) {
+      } else if (
+        eventType.includes("leave") ||
+        eventType.includes("cancelled")
+      ) {
         setIsDragOver(false);
       }
 
-      // Hantera drop oavsett exakt typ-namn
       const paths = (payload.paths as string[]) ?? [];
-      if (paths.length > 0 && (eventType.includes("drop") || eventType === "")) {
+      if (
+        paths.length > 0 &&
+        (eventType.includes("drop") || eventType === "")
+      ) {
         setIsDragOver(false);
-        const pdfPaths = paths.filter((p: string) =>
-          p.toLowerCase().endsWith(".pdf")
+        const supported = paths.filter(
+          (p) => isPdfFile(p) || isOfficeFile(p)
         );
-        if (pdfPaths.length === 0) return;
-
-        const buffers: ArrayBuffer[] = [];
-        const names: string[] = [];
-
-        for (const filePath of pdfPaths) {
-          const bytes = await readFile(filePath);
-          buffers.push(bytes.buffer as ArrayBuffer);
-          const name = filePath.split("/").pop() || filePath;
-          names.push(name);
+        if (supported.length > 0) {
+          addFilesFromPaths(supported);
         }
-
-        addPdfBuffers(buffers, names);
       }
     });
 
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [addPdfBuffers]);
-
-  // Lägg till PDF-filer (via fil-väljaren/klick)
-  const handleFilesAdded = useCallback(
-    async (files: File[]) => {
-      const newBuffers: ArrayBuffer[] = [];
-      const newNames: string[] = [];
-
-      for (const file of files) {
-        const buffer = await file.arrayBuffer();
-        newBuffers.push(buffer);
-        newNames.push(file.name);
-      }
-
-      addPdfBuffers(newBuffers, newNames);
-    },
-    [addPdfBuffers]
-  );
+  }, [addFilesFromPaths]);
 
   // Drag & drop ordningsändring
   const handleDragEnd = (event: DragEndEvent) => {
@@ -168,7 +228,7 @@ export default function App() {
       const doc = pdfDocsCache.current.get(fileIndex);
       if (!doc) return;
 
-      const pdfPage = await doc.getPage(pageIndex + 1); // pdf.js är 1-indexed
+      const pdfPage = await doc.getPage(pageIndex + 1);
       const viewport = pdfPage.getViewport({ scale });
 
       canvas.width = viewport.width;
@@ -199,6 +259,17 @@ export default function App() {
     setModifications((prev) => prev.slice(0, -1));
   };
 
+  const handleClear = () => {
+    if (!confirm(T("clear_confirm"))) return;
+    setSourceFiles([]);
+    setFileNames([]);
+    setPages([]);
+    setSelectedIndex(-1);
+    setModifications([]);
+    setActiveTool("select");
+    pdfDocsCache.current.clear();
+  };
+
   const handleExport = async () => {
     if (pages.length === 0) return;
     setExporting(true);
@@ -206,7 +277,6 @@ export default function App() {
     try {
       const pdfBytes = await compileNewPdf(sourceFiles, pages, modifications);
 
-      // Öppna macOS "Spara som"-dialog
       const filePath = await save({
         defaultPath: "LLT-PDF-export.pdf",
         filters: [{ name: T("pdf_document"), extensions: ["pdf"] }],
@@ -224,8 +294,18 @@ export default function App() {
     }
   };
 
+  const isConverting = convertingFiles.length > 0;
+
   return (
     <>
+      {showUpdateBanner && updateInfo && (
+        <UpdateBanner
+          newVersion={updateInfo.newVersion}
+          downloadUrl={updateInfo.downloadUrl}
+          onDismiss={() => setShowUpdateBanner(false)}
+        />
+      )}
+
       {/* Drop-overlay med pulsande kant */}
       {isDragOver && (
         <div
@@ -264,9 +344,11 @@ export default function App() {
         activeTool={activeTool}
         onToolChange={setActiveTool}
         onExport={handleExport}
-        canExport={pages.length > 0 && !exporting}
+        canExport={pages.length > 0 && !exporting && !isConverting}
         onUndo={handleUndo}
         canUndo={modifications.length > 0}
+        onClear={handleClear}
+        canClear={pages.length > 0 && !isConverting}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -282,7 +364,58 @@ export default function App() {
             overflowY: "auto",
           }}
         >
-          <Dropzone onFilesAdded={handleFilesAdded} isDragOver={isDragOver} />
+          <Dropzone onPathsAdded={addFilesFromPaths} isDragOver={isDragOver} />
+
+          {/* Konverteringsstatus */}
+          {isConverting && (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                padding: "10px 12px",
+                fontSize: "12px",
+                color: "var(--text-muted)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom:
+                    convertingFiles.length > 0 ? "6px" : "0",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    border: "2px solid var(--accent)",
+                    borderTopColor: "transparent",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                <span>{T("converting")}...</span>
+              </div>
+              {convertingFiles.map((name) => (
+                <div
+                  key={name}
+                  style={{
+                    fontSize: "11px",
+                    opacity: 0.7,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {name}
+                </div>
+              ))}
+            </div>
+          )}
 
           <DndContext
             sensors={sensors}

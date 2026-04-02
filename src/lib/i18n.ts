@@ -5,10 +5,18 @@ const strings: Record<string, Record<string, string>> = {
     mask: "Maskera",
     text: "Text",
     undo: "Angra",
+    clear: "Rensa",
+    clear_confirm: "Vill du ta bort alla uppladdade PDF-filer och borja om?",
     export_pdf: "Exportera PDF",
 
     // Dropzone
-    drop_hint: "Dra PDF-filer hit eller klicka",
+    drop_hint: "Dra filer hit eller klicka",
+    drop_hint_formats: "PDF, Word, Excel",
+
+    // Konvertering
+    converting: "Konverterar",
+    convert_error: "Konvertering misslyckades",
+    convert_no_app: "Pages/Numbers kravs for Word/Excel-konvertering pa macOS. Office kravs pa Windows.",
 
     // PdfViewer
     select_page: "Valj en sida i panelen till vanster",
@@ -27,6 +35,11 @@ const strings: Record<string, Record<string, string>> = {
     lang_prompt: "Select language / Valj sprak",
     lang_sv: "Svenska",
     lang_en: "English",
+
+    // Version check
+    update_available: "Ny version tillganglig",
+    update_now: "Uppdatera",
+    dismiss: "Stang",
 
     // License screens
     loading: "Laddar...",
@@ -47,10 +60,18 @@ const strings: Record<string, Record<string, string>> = {
     mask: "Mask",
     text: "Text",
     undo: "Undo",
+    clear: "Clear",
+    clear_confirm: "Remove all uploaded PDFs and start over?",
     export_pdf: "Export PDF",
 
     // Dropzone
-    drop_hint: "Drag PDF files here or click",
+    drop_hint: "Drag files here or click",
+    drop_hint_formats: "PDF, Word, Excel",
+
+    // Conversion
+    converting: "Converting",
+    convert_error: "Conversion failed",
+    convert_no_app: "Pages/Numbers required for Word/Excel on macOS. Office required on Windows.",
 
     // PdfViewer
     select_page: "Select a page in the left panel",
@@ -69,6 +90,11 @@ const strings: Record<string, Record<string, string>> = {
     lang_prompt: "Select language / Valj sprak",
     lang_sv: "Svenska",
     lang_en: "English",
+
+    // Version check
+    update_available: "New version available",
+    update_now: "Update Now",
+    dismiss: "Dismiss",
 
     // License screens
     loading: "Loading...",

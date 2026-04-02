@@ -312,6 +312,146 @@ fn generate_trial_key(name: String, email: String, company: String, days: u32) -
     format!("LLT.{}", chunks.join("."))
 }
 
+// ── Dokumentkonvertering till PDF ──────────────────────────────────────────
+
+#[command]
+fn convert_to_pdf(file_path: String) -> Result<String, String> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let path = std::path::Path::new(&file_path);
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if !["docx", "doc", "xlsx", "xls"].contains(&ext.as_str()) {
+        return Err(format!("Filtypen .{} stöds inte.", ext));
+    }
+
+    // Unikt temporärt filnamn
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let out_path = std::env::temp_dir().join(format!("llt_pdf_conv_{}.pdf", ts));
+    let out_str = out_path.to_string_lossy().to_string();
+
+    #[cfg(target_os = "macos")]
+    convert_to_pdf_macos(&file_path, &out_str, &ext)?;
+
+    #[cfg(target_os = "windows")]
+    convert_to_pdf_windows(&file_path, &out_str, &ext)?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    return Err("PDF-konvertering stöds inte på detta operativsystem.".to_string());
+
+    if !out_path.exists() {
+        return Err("Konverteringen misslyckades — ingen PDF skapades.".to_string());
+    }
+
+    Ok(out_str)
+}
+
+#[cfg(target_os = "macos")]
+fn convert_to_pdf_macos(input: &str, output: &str, ext: &str) -> Result<(), String> {
+    let app = if matches!(ext, "docx" | "doc") {
+        "Pages"
+    } else {
+        "Numbers"
+    };
+
+    // Escaped paths för AppleScript (backslash-escape citattecken)
+    let input_esc = input.replace('\\', "\\\\").replace('"', "\\\"");
+    let output_esc = output.replace('\\', "\\\\").replace('"', "\\\"");
+
+    let script = format!(
+        r#"tell application "{app}"
+    open POSIX file "{input}"
+    delay 3
+    set theDoc to front document
+    export theDoc to POSIX file "{output}" as PDF
+    close theDoc saving no
+end tell"#,
+        app = app,
+        input = input_esc,
+        output = output_esc,
+    );
+
+    let result = Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .map_err(|e| format!("Kunde inte köra AppleScript: {}", e))?;
+
+    if !result.status.success() {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        return Err(format!(
+            "{} är inte installerat eller kunde inte öppna filen.\n{}",
+            app,
+            stderr.trim()
+        ));
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn convert_to_pdf_windows(input: &str, output: &str, ext: &str) -> Result<(), String> {
+    let input_ps = input.replace('\'', "''");
+    let output_ps = output.replace('\'', "''");
+
+    let script = if matches!(ext, "docx" | "doc") {
+        format!(
+            r#"$ErrorActionPreference = 'Stop'
+try {{
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $doc = $word.Documents.Open('{input}')
+    $doc.ExportAsFixedFormat('{output}', 17)
+    $doc.Close([ref]$false)
+    $word.Quit()
+}} catch {{
+    Write-Error $_.Exception.Message; exit 1
+}}"#,
+            input = input_ps,
+            output = output_ps,
+        )
+    } else {
+        format!(
+            r#"$ErrorActionPreference = 'Stop'
+try {{
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $wb = $excel.Workbooks.Open('{input}')
+    $wb.ExportAsFixedFormat(0, '{output}')
+    $wb.Close($false)
+    $excel.Quit()
+}} catch {{
+    Write-Error $_.Exception.Message; exit 1
+}}"#,
+            input = input_ps,
+            output = output_ps,
+        )
+    };
+
+    let result = Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+        .output()
+        .map_err(|e| format!("Kunde inte köra PowerShell: {}", e))?;
+
+    if !result.status.success() {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        return Err(format!(
+            "Microsoft Office är inte installerat eller kunde inte öppna filen.\n{}",
+            stderr.trim()
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -324,6 +464,7 @@ pub fn run() {
             check_license,
             activate_license,
             generate_trial_key,
+            convert_to_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

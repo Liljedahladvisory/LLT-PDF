@@ -1,84 +1,55 @@
-import React, { useCallback, useRef, useState } from "react";
+import React from "react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { T } from "../lib/i18n";
 
 interface DropzoneProps {
-  onFilesAdded: (files: File[]) => void;
+  onPathsAdded: (paths: string[]) => void;
   isDragOver?: boolean;
 }
 
-export default function Dropzone({ onFilesAdded, isDragOver = false }: DropzoneProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragIn = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragOut = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-
-      const files = Array.from(e.dataTransfer.files).filter(
-        (f) => f.type === "application/pdf"
-      );
-      if (files.length > 0) onFilesAdded(files);
-    },
-    [onFilesAdded]
-  );
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files).filter(
-        (f) => f.type === "application/pdf"
-      );
-      if (files.length > 0) onFilesAdded(files);
-    }
+export default function Dropzone({ onPathsAdded, isDragOver = false }: DropzoneProps) {
+  const handleClick = async () => {
+    const result = await open({
+      multiple: true,
+      filters: [
+        {
+          name: "Dokument",
+          extensions: ["pdf", "docx", "doc", "xlsx", "xls"],
+        },
+      ],
+    });
+    if (!result) return;
+    const paths = Array.isArray(result) ? result : [result];
+    if (paths.length > 0) onPathsAdded(paths);
   };
 
   return (
     <div
-      onDragEnter={handleDragIn}
-      onDragLeave={handleDragOut}
-      onDragOver={handleDrag}
-      onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
+      onClick={handleClick}
       className={isDragOver ? "dropzone-pulse" : ""}
       style={{
-        border: `2px dashed ${isDragOver ? "#ff8c00" : isDragging ? "var(--accent)" : "var(--border)"}`,
+        border: `2px dashed ${isDragOver ? "#ff8c00" : "var(--border)"}`,
         borderRadius: "var(--radius)",
         padding: "24px 16px",
         textAlign: "center",
         cursor: "pointer",
-        background: isDragOver ? "rgba(255, 140, 0, 0.12)" : isDragging ? "rgba(91,141,239,0.08)" : "transparent",
+        background: isDragOver ? "rgba(255, 140, 0, 0.12)" : "transparent",
         transition: "all 0.2s",
       }}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept=".pdf"
-        style={{ display: "none" }}
-        onChange={handleInputChange}
-      />
       <div style={{ fontSize: "28px", marginBottom: "8px" }}>+</div>
       <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
         {T("drop_hint")}
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          marginTop: "4px",
+          opacity: 0.7,
+        }}
+      >
+        {T("drop_hint_formats")}
       </div>
     </div>
   );
