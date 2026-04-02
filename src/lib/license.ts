@@ -43,16 +43,28 @@ export async function sendVerificationCode(
   try {
     const resp = await tauriFetch(WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "send_verification_email",
         email,
         name,
         code,
       }),
+      maxRedirections: 5,
     });
-    const data = await resp.json();
-    return data.status === "ok";
+    if (!resp.ok) {
+      console.error("[Verification] HTTP status:", resp.status, resp.statusText);
+      return false;
+    }
+    const text = await resp.text();
+    console.log("[Verification] Response:", text);
+    try {
+      const data = JSON.parse(text);
+      return data.status === "ok";
+    } catch {
+      console.error("[Verification] Non-JSON response:", text);
+      return false;
+    }
   } catch (e) {
     console.error("[Verification] Webhook error:", e);
     return false;
@@ -64,11 +76,12 @@ export async function notifyAdmin(regData: Record<string, string>): Promise<void
   try {
     await tauriFetch(WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(regData),
+      maxRedirections: 5,
     });
-  } catch {
-    // fire-and-forget
+  } catch (e) {
+    console.error("[NotifyAdmin] Webhook error:", e);
   }
 }
 
@@ -76,6 +89,7 @@ export async function checkRevocation(email: string): Promise<boolean> {
   try {
     const resp = await tauriFetch(REVOCATION_URL, {
       headers: { "User-Agent": "LLT-PDF/1.0" },
+      maxRedirections: 5,
     });
     const data = await resp.json();
     const revoked: string[] = (data.revoked || []).map((e: string) =>

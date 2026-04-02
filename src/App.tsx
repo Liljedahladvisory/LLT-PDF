@@ -14,7 +14,6 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import * as pdfjsLib from "pdfjs-dist";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile, readFile } from "@tauri-apps/plugin-fs";
@@ -41,18 +40,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-const OFFICE_EXTENSIONS = [".docx", ".doc", ".xlsx", ".xls"];
-const PDF_EXTENSION = ".pdf";
-
-function isOfficeFile(path: string): boolean {
-  const lower = path.toLowerCase();
-  return OFFICE_EXTENSIONS.some((ext) => lower.endsWith(ext));
-}
-
-function isPdfFile(path: string): boolean {
-  return path.toLowerCase().endsWith(PDF_EXTENSION);
-}
-
 export default function App() {
   const [sourceFiles, setSourceFiles] = useState<ArrayBuffer[]>([]);
   const [fileNames, setFileNames] = useState<string[]>([]);
@@ -64,7 +51,6 @@ export default function App() {
   );
   const [exporting, setExporting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [convertingFiles, setConvertingFiles] = useState<string[]>([]);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
@@ -89,7 +75,7 @@ export default function App() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Lägg till PDF-buffers i appen
+  // Intern funktion för att lägga till buffers + namn
   const addPdfBuffers = useCallback(
     async (newBuffers: ArrayBuffer[], newNames: string[]) => {
       const startIndex = sourceFiles.length;
@@ -120,90 +106,63 @@ export default function App() {
     [sourceFiles.length, selectedIndex]
   );
 
-  // Konvertera ett Office-dokument till PDF och lägg till i appen
-  const convertAndAdd = useCallback(
-    async (filePath: string) => {
-      const fileName = filePath.split(/[/\\]/).pop() || filePath;
-      setConvertingFiles((prev) => [...prev, fileName]);
-      try {
-        const pdfPath = await invoke<string>("convert_to_pdf", { filePath });
-        const bytes = await readFile(pdfPath);
-        const pdfName = fileName.replace(/\.(docx?|xlsx?)$/i, ".pdf");
-        await addPdfBuffers([bytes.buffer as ArrayBuffer], [pdfName]);
-      } catch (err) {
-        alert(`${T("convert_error")}: ${fileName}\n\n${err}`);
-      } finally {
-        setConvertingFiles((prev) => prev.filter((n) => n !== fileName));
-      }
-    },
-    [addPdfBuffers]
-  );
-
-  // Hantera filer från sökvägar (drag-drop och filväljare)
-  const addFilesFromPaths = useCallback(
-    async (paths: string[]) => {
-      const pdfPaths = paths.filter(isPdfFile);
-      const officePaths = paths.filter(isOfficeFile);
-
-      // PDF-filer: läs direkt
-      if (pdfPaths.length > 0) {
-        const buffers: ArrayBuffer[] = [];
-        const names: string[] = [];
-        for (const p of pdfPaths) {
-          const bytes = await readFile(p);
-          buffers.push(bytes.buffer as ArrayBuffer);
-          names.push(p.split(/[/\\]/).pop() || p);
-        }
-        await addPdfBuffers(buffers, names);
-      }
-
-      // Office-filer: konvertera en i taget
-      for (const p of officePaths) {
-        await convertAndAdd(p);
-      }
-    },
-    [addPdfBuffers, convertAndAdd]
-  );
-
-  // Lyssna på Tauris OS-nivå drag & drop
+  // Lyssna på Tauris fil-drop-event (OS-nivå drag & drop)
   useEffect(() => {
     const appWindow = getCurrentWebviewWindow();
     const unlisten = appWindow.onDragDropEvent(async (event) => {
       const payload = event.payload as Record<string, unknown>;
       const eventType = (payload.type as string) ?? "";
+      console.log("[DragDrop]", eventType, JSON.stringify(payload).slice(0, 200));
 
-      if (
-        eventType.includes("enter") ||
-        eventType.includes("over") ||
-        eventType.includes("dragged")
-      ) {
+      if (eventType.includes("enter") || eventType.includes("over") || eventType.includes("dragged")) {
         setIsDragOver(true);
-      } else if (
-        eventType.includes("leave") ||
-        eventType.includes("cancelled")
-      ) {
+      } else if (eventType.includes("leave") || eventType.includes("cancelled")) {
         setIsDragOver(false);
       }
 
       const paths = (payload.paths as string[]) ?? [];
-      if (
-        paths.length > 0 &&
-        (eventType.includes("drop") || eventType === "")
-      ) {
+      if (paths.length > 0 && (eventType.includes("drop") || eventType === "")) {
         setIsDragOver(false);
-        const supported = paths.filter(
-          (p) => isPdfFile(p) || isOfficeFile(p)
+        const pdfPaths = paths.filter((p: string) =>
+          p.toLowerCase().endsWith(".pdf")
         );
-        if (supported.length > 0) {
-          addFilesFromPaths(supported);
+        if (pdfPaths.length === 0) return;
+
+        const buffers: ArrayBuffer[] = [];
+        const names: string[] = [];
+
+        for (const filePath of pdfPaths) {
+          const bytes = await readFile(filePath);
+          buffers.push(bytes.buffer as ArrayBuffer);
+          const name = filePath.split("/").pop() || filePath;
+          names.push(name);
         }
+
+        addPdfBuffers(buffers, names);
       }
     });
 
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [addFilesFromPaths]);
+  }, [addPdfBuffers]);
+
+  // Lägg till PDF-filer (via fil-väljaren/klick)
+  const handleFilesAdded = useCallback(
+    async (files: File[]) => {
+      const newBuffers: ArrayBuffer[] = [];
+      const newNames: string[] = [];
+
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        newBuffers.push(buffer);
+        newNames.push(file.name);
+      }
+
+      addPdfBuffers(newBuffers, newNames);
+    },
+    [addPdfBuffers]
+  );
 
   // Drag & drop ordningsändring
   const handleDragEnd = (event: DragEndEvent) => {
@@ -294,8 +253,6 @@ export default function App() {
     }
   };
 
-  const isConverting = convertingFiles.length > 0;
-
   return (
     <>
       {showUpdateBanner && updateInfo && (
@@ -344,11 +301,11 @@ export default function App() {
         activeTool={activeTool}
         onToolChange={setActiveTool}
         onExport={handleExport}
-        canExport={pages.length > 0 && !exporting && !isConverting}
+        canExport={pages.length > 0 && !exporting}
         onUndo={handleUndo}
         canUndo={modifications.length > 0}
         onClear={handleClear}
-        canClear={pages.length > 0 && !isConverting}
+        canClear={pages.length > 0}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -364,58 +321,7 @@ export default function App() {
             overflowY: "auto",
           }}
         >
-          <Dropzone onPathsAdded={addFilesFromPaths} isDragOver={isDragOver} />
-
-          {/* Konverteringsstatus */}
-          {isConverting && (
-            <div
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius)",
-                padding: "10px 12px",
-                fontSize: "12px",
-                color: "var(--text-muted)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom:
-                    convertingFiles.length > 0 ? "6px" : "0",
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    border: "2px solid var(--accent)",
-                    borderTopColor: "transparent",
-                    animation: "spin 0.8s linear infinite",
-                  }}
-                />
-                <span>{T("converting")}...</span>
-              </div>
-              {convertingFiles.map((name) => (
-                <div
-                  key={name}
-                  style={{
-                    fontSize: "11px",
-                    opacity: 0.7,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {name}
-                </div>
-              ))}
-            </div>
-          )}
+          <Dropzone onFilesAdded={handleFilesAdded} isDragOver={isDragOver} />
 
           <DndContext
             sensors={sensors}

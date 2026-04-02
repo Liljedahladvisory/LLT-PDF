@@ -10,13 +10,7 @@ const strings: Record<string, Record<string, string>> = {
     export_pdf: "Exportera PDF",
 
     // Dropzone
-    drop_hint: "Dra filer hit eller klicka",
-    drop_hint_formats: "PDF, Word, Excel",
-
-    // Konvertering
-    converting: "Konverterar",
-    convert_error: "Konvertering misslyckades",
-    convert_no_app: "Pages/Numbers kravs for Word/Excel-konvertering pa macOS. Office kravs pa Windows.",
+    drop_hint: "Dra PDF-filer hit eller klicka",
 
     // PdfViewer
     select_page: "Valj en sida i panelen till vanster",
@@ -65,13 +59,7 @@ const strings: Record<string, Record<string, string>> = {
     export_pdf: "Export PDF",
 
     // Dropzone
-    drop_hint: "Drag files here or click",
-    drop_hint_formats: "PDF, Word, Excel",
-
-    // Conversion
-    converting: "Converting",
-    convert_error: "Conversion failed",
-    convert_no_app: "Pages/Numbers required for Word/Excel on macOS. Office required on Windows.",
+    drop_hint: "Drag PDF files here or click",
 
     // PdfViewer
     select_page: "Select a page in the left panel",

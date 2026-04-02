@@ -8,6 +8,8 @@ interface ToolbarProps {
   canExport: boolean;
   onUndo: () => void;
   canUndo: boolean;
+  onClear: () => void;
+  canClear: boolean;
 }
 
 export default function Toolbar({
@@ -17,6 +19,8 @@ export default function Toolbar({
   canExport,
   onUndo,
   canUndo,
+  onClear,
+  canClear,
 }: ToolbarProps) {
   const btnStyle = (tool: string): React.CSSProperties => ({
     background: activeTool === tool ? "var(--accent)" : "var(--surface)",
@@ -51,6 +55,13 @@ export default function Toolbar({
         </span>
       </div>
 
+      <button
+        onClick={onClear}
+        disabled={!canClear}
+        style={{ background: "var(--surface)", color: "#e57373", marginRight: "6px" }}
+      >
+        {T("clear")}
+      </button>
       <button
         onClick={onUndo}
         disabled={!canUndo}
