@@ -5,7 +5,7 @@ const GITHUB_API_URL =
   "https://api.github.com/repos/Liljedahladvisory/LLT-PDF/releases/latest";
 const VERSION_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 timmar
 const LAST_CHECK_KEY = "llt-pdf-last-version-check";
-const CURRENT_VERSION = "0.2.1"; // Maste matcha package.json och tauri.conf.json
+const CURRENT_VERSION = "0.2.2"; // Maste matcha package.json och tauri.conf.json
 
 export interface UpdateInfo {
   newVersion: string;
@@ -53,7 +53,10 @@ export async function checkForUpdates(): Promise<VersionCheckResult> {
   try {
     const resp = await fetch(GITHUB_API_URL, {
       method: "GET",
-      headers: { Accept: "application/vnd.github.v3+json" },
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": `LLT-PDF/${CURRENT_VERSION}`,
+      },
       maxRedirections: 5,
     });
 
