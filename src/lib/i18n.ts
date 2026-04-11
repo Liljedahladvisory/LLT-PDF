@@ -4,46 +4,46 @@ const strings: Record<string, Record<string, string>> = {
     select: "Markera",
     mask: "Maskera",
     text: "Text",
-    undo: "Angra",
+    undo: "Ångra",
     clear: "Rensa",
-    clear_confirm: "Vill du ta bort alla uppladdade PDF-filer och borja om?",
+    clear_confirm: "Vill du ta bort alla uppladdade PDF-filer och börja om?",
     export_pdf: "Exportera PDF",
 
     // Dropzone
     drop_hint: "Dra PDF-filer hit eller klicka",
 
     // PdfViewer
-    select_page: "Valj en sida i panelen till vanster",
+    select_page: "Välj en sida i panelen till vänster",
     enter_text: "Skriv text...",
 
     // Export
     pdf_saved: "PDF sparad!",
-    export_failed: "Kunde inte exportera PDF. Se konsolen for detaljer.",
+    export_failed: "Kunde inte exportera PDF. Se konsolen för detaljer.",
     pdf_document: "PDF-dokument",
 
     // Drop overlay
-    drop_files_here: "Slapp PDF-filer har",
+    drop_files_here: "Släpp PDF-filer här",
 
     // Language dialog
     lang_title: "LLT PDF",
-    lang_prompt: "Select language / Valj sprak",
+    lang_prompt: "Välj språk / Select language",
     lang_sv: "Svenska",
     lang_en: "English",
 
     // Version check
-    update_available: "Ny version tillganglig",
+    update_available: "Ny version tillgänglig",
     update_now: "Uppdatera",
-    dismiss: "Stang",
+    dismiss: "Stäng",
 
     // License screens
     loading: "Laddar...",
-    license_revoked: "Din licens har sparrats. Kontakta Liljedahl Legal Tech.",
-    contact_renewal: "Kontakta svante@liljedahladvisory.se for att fornya din licens.",
+    license_revoked: "Din licens har spärrats. Kontakta Liljedahl Legal Tech.",
+    contact_renewal: "Kontakta svante@liljedahladvisory.se för att förnya din licens.",
     enter_new_key: "Ange ny licensnyckel",
     activate: "Aktivera",
     back: "Tillbaka",
     activating: "Aktiverar...",
-    paste_key: "Ange din licensnyckel for att aktivera appen:",
+    paste_key: "Ange din licensnyckel för att aktivera appen:",
     key_placeholder: "LLT.XXXX.XXXX.XXXX...",
     invalid_key: "Klistra in din licensnyckel.",
     activation_failed: "Aktivering misslyckades.",

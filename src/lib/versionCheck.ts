@@ -5,7 +5,7 @@ const GITHUB_API_URL =
   "https://api.github.com/repos/Liljedahladvisory/LLT-PDF/releases/latest";
 const VERSION_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 timmar
 const LAST_CHECK_KEY = "llt-pdf-last-version-check";
-const CURRENT_VERSION = "0.2.2"; // Maste matcha package.json och tauri.conf.json
+const CURRENT_VERSION = "0.2.3"; // Maste matcha package.json och tauri.conf.json
 
 export interface UpdateInfo {
   newVersion: string;
